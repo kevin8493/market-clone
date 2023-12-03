@@ -1,29 +1,54 @@
 <script>
   import { getDatabase, ref, push } from "firebase/database";
   import Footer from "../components/Footer.svelte";
-
+  import {
+    getStorage,
+    ref as refImage,
+    uploadBytes,
+    getDownloadURL,
+  } from "firebase/storage";
   let title;
   let price;
   let description;
   let place;
+  let files;
 
-  function writeUserData() {
-    const db = getDatabase();
+  const storage = getStorage();
+  const db = getDatabase();
+
+  function writeUserData(imgUrl) {
     push(ref(db, "items/"), {
       title,
       price,
       description,
       place,
+      insertAt: new Date().getTime(),
+      imgUrl,
     });
     alert("글쓰기가 완료되었습니다");
     window.location.hash = "/";
   }
+
+  const uploadFile = async () => {
+    const file = files[0];
+    const name = file.name;
+    const imgRef = refImage(storage, name);
+    const res = await uploadBytes(imgRef, file);
+    const url = await getDownloadURL(imgRef);
+    console.log("응답", url);
+    return url;
+  };
+
+  const handleSubmit = async () => {
+    const url = await uploadFile();
+    writeUserData(url);
+  };
 </script>
 
-<form id="write-form" on:submit|preventDefault={writeUserData}>
+<form id="write-form" on:submit|preventDefault={handleSubmit}>
   <div>
     <label for="image">이미지</label>
-    <input type="file" id="image" name="image" />
+    <input type="file" bind:files id="image" name="image" />
   </div>
   <div>
     <label for="title">제목</label>
